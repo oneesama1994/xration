@@ -128,22 +128,28 @@ function Page(props) {
     windowWidth,
     onPageClick,
   } = props;
+  const [imageBuffer, setImageBuffer] = useState(null);
   const [blobUrl, setBlobUrl] = useState(null);
   const onceRef = useRef(false);
   const { ref, inView } = useInView({
     rootMargin: `${windowHeight * 2.5}px 0px ${windowHeight * 3.5}px`,
-    triggerOnce: true,
   });
 
   useEffect(() => {
     async function fetchImage() {
       const res = await fetchWithRetries(publicURL, 1000, 5);
       const buffer = await res.arrayBuffer();
-      setBlobUrl(createBlobUrl(decryptBuffer(buffer)));
+      setImageBuffer(decryptBuffer(buffer));
     }
     if (inView && !onceRef.current) {
       fetchImage();
       onceRef.current = true;
+    }
+  }, [inView]);
+
+  useEffect(() => {
+    if (inView) {
+      setBlobUrl(createBlobUrl(imageBuffer));
     }
 
     return () => {
@@ -151,7 +157,7 @@ function Page(props) {
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [inView]);
+  }, [imageBuffer, inView]);
 
   const windowRatio = windowHeight / windowWidth;
   const pageRatio = pageHeight / pageWidth;
