@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "prebuild": "node ./scripts/prebuild.js",
+    "postinstall": "sh setup.sh",
     "develop": "gatsby develop",
     "start": "gatsby develop",
     "build": "gatsby build",

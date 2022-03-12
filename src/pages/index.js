@@ -3,6 +3,7 @@ import { graphql, Link } from "gatsby";
 import slugify from "slugify";
 
 import { decryptBuffer, createBlobUrl } from "../utils/crypto";
+import { fetchWithRetries } from "../utils/fetch";
 import Layout from "../components/Layout";
 
 import * as styles from "./index.module.css";
@@ -14,20 +15,18 @@ export default function PageIndex(props) {
   );
 
   useEffect(() => {
-    (async () => {
-      for (let i = 0; i < thumbnails.edges.length; i++) {
-        const {
-          node: { publicURL },
-        } = thumbnails.edges[i];
-        const res = await fetch(publicURL);
-        const buffer = await res.arrayBuffer();
-        const decryptedBuffer = decryptBuffer(buffer);
-        const blobUrl = createBlobUrl(decryptedBuffer);
-        setUrls((arr) =>
-          arr.map((url, index) => (i === index ? blobUrl : url))
-        );
-      }
-    })();
+    async function loadImage(index) {
+      const {
+        node: { publicURL },
+      } = thumbnails.edges[index];
+
+      const res = await fetchWithRetries(publicURL, 1000, 5);
+      const buffer = await res.arrayBuffer();
+      const decryptedBuffer = decryptBuffer(buffer);
+      const blobUrl = createBlobUrl(decryptedBuffer);
+      setUrls((arr) => arr.map((url, i) => (i === index ? blobUrl : url)));
+    }
+    Promise.all(thumbnails.edges.map((_, index) => loadImage(index)));
 
     return () => {
       for (const url of urls) {
@@ -41,21 +40,31 @@ export default function PageIndex(props) {
   return (
     <Layout>
       <div className={styles.container}>
-        {urls.map((url, index) =>
-          url != null ? (
+        {urls.map((url, index) => {
+          const {
+            node: { relativePath, name },
+          } = thumbnails.edges[index];
+          const [_, width, height] = name.split("-");
+
+          return (
             <Link
               className={styles.thumbnail}
-              to={`/${slugify(
-                thumbnails.edges[index].node.relativePath
-                  .split("/")[0]
-                  .toLowerCase()
-              )}`}
+              to={`/${slugify(relativePath.split("/")[0].toLowerCase())}`}
               key={index}
             >
-              <img src={url} className={styles.thumbnailImage} />
+              <div
+                style={{
+                  paddingTop: `${
+                    (parseInt(height, 10) * 100) / parseInt(width, 10)
+                  }%`,
+                }}
+              />
+              {url != null ? (
+                <img src={url} className={styles.thumbnailImage} />
+              ) : null}
             </Link>
-          ) : null
-        )}
+          );
+        })}
       </div>
     </Layout>
   );

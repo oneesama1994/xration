@@ -4,8 +4,8 @@ import { useInView } from "react-intersection-observer";
 import classnames from "classnames";
 
 import { decryptBuffer, createBlobUrl } from "../utils/crypto";
+import { fetchWithRetries } from "../utils/fetch";
 import Layout from "../components/Layout";
-import Image from "../components/Image";
 import Logo from "../components/Logo";
 import IconSettings from "../components/IconSettings";
 import useLocalStorage from "../hooks/useLocalStorage";
@@ -137,7 +137,7 @@ function Page(props) {
 
   useEffect(() => {
     async function fetchImage() {
-      const res = await fetch(publicURL);
+      const res = await fetchWithRetries(publicURL, 1000, 5);
       const buffer = await res.arrayBuffer();
       setBlobUrl(createBlobUrl(decryptBuffer(buffer)));
     }
@@ -188,7 +188,7 @@ function Page(props) {
           />
         ) : null}
         {inView ? (
-          <Image
+          <img
             id={`page-image-${index}`}
             className={styles.pageImage}
             src={blobUrl}
