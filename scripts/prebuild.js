@@ -31,6 +31,13 @@ async function getDirectories(parentPath) {
     .map((dirent) => dirent.name);
 }
 
+function naturalCompare(s1, s2) {
+  return s1.localeCompare(s2, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 (async () => {
   const directories = await getDirectories("content/");
 
@@ -46,6 +53,7 @@ async function getDirectories(parentPath) {
     if (filePaths.length === 0) {
       continue;
     }
+    filePaths.sort(naturalCompare);
 
     // Create thumbnail
     const thumbnailPath = `content/${dir}/thumbnail.webp`;
